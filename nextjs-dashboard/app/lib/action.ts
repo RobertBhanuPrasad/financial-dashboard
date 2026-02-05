@@ -33,9 +33,9 @@ export default async function createInvoices(formData: FormData) {
     `
 } catch(error){
     console.log(error)
-    return {
-        message: "Database error: Failed to create the user"
-    }
+    // return {
+    //     message: "Database error: Failed to create the user"
+    // }
 }
 revalidatePath('/dashboard/invoices')
 redirect('/dashboard/invoices')
@@ -60,9 +60,9 @@ export async function udpateInvoices(id: string, formData: FormData) {
         `
     }catch(error){
         console.log(error)
-        return {
-            message: "Database error: Failed to update the user"
-        }
+        // return {
+        //     message: "Database error: Failed to update the user"
+        // }
     }
 
      revalidatePath('/dashboard/invoices');
@@ -76,9 +76,10 @@ export async function deleteInvoice(id: string){
     `;
     }catch(error){
         console.log(error)
-        return {
-            message: "Database error: Failed to delete the user"
-        }
+        //th form data just say to delete but we are returning a object as like so it is throwoing and eror so that we are commenting the below one 
+        // return {
+        //     message: "Database error: Failed to delete the user"
+        // }
     }
     revalidatePath('/dashboard/invoices')
 }
