@@ -15,7 +15,7 @@ export default function LoginPage() {
                 <Suspense>
                     <LoginForm />
                 </Suspense>
-                <p>Don't have an account? <Link href="/create-account">Create one</Link></p>
+                <p>Don't have an account? <Link href="/create-account" className='text-blue-500'>Create one</Link></p>
             </div>
         </main>
     );
