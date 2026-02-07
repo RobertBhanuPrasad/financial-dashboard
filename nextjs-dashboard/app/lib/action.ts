@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import postgres from "postgres";
 import {z} from "zod"
+import bcrypt from 'bcrypt';
 
 const FormSchema = z.object({
     id: z.string(),
@@ -132,4 +133,46 @@ export async function deleteInvoice(id: string){
         // }
     }
     revalidatePath('/dashboard/invoices')
+}
+
+export async function createAccount(data: { name: string; email: string; password: string; confirmPassword: string }) {
+  const { name, email, password, confirmPassword } = data;
+
+  if (!name || !email || !password || !confirmPassword) {
+    return {
+      message: 'All fields are required',
+      status: 400,
+    };
+  }
+
+  if (password !== confirmPassword) {
+    return {
+      message: 'Passwords do not match',
+      status: 400,
+    };
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await sql`
+      INSERT INTO users (name, email, password)
+      VALUES (${name}, ${email}, ${hashedPassword})
+    `;
+    return {
+      message: 'Account created successfully',
+      status: 201,
+    };
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505') { 
+      return {
+        message: 'Email already exists',
+        status: 409,
+      };
+    }
+    console.error('Error creating account:', error);
+    return {
+      message: 'Internal server error',
+      status: 500,
+    };
+  }
 }
