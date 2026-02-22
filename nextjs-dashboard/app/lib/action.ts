@@ -1,11 +1,10 @@
 'use server';
 import { signIn } from "@/auth";
-import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import postgres from "postgres";
 import {z} from "zod"
 import bcrypt from 'bcrypt';
+import { sql } from "@/app/lib/data";
 
 const FormSchema = z.object({
     id: z.string(),
@@ -32,24 +31,29 @@ export async function authenticate(
     prevState: string | undefined,
     formData: FormData,
 ) {
+    // Next.js useActionState prefixes form fields with '1_' in the wire protocol
+    const email = (formData.get('email') ?? formData.get('1_email')) as string;
+
+    // Check if email exists in DB before attempting sign in
+    if (email) {
+        const users = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`;
+        if (users.length === 0) {
+            return 'no_account';
+        }
+    }
+
     try {
         await signIn('credentials', formData);
     } catch (error) {
-        if (error instanceof AuthError) {
-            switch (error.type) {
-                case 'CredentialsSignin':
-                    return 'Invalid credentials.';
-                default:
-                    return 'Something went wrong.';
-            }
+        const e = error as any;
+        if (e?.message === 'NEXT_REDIRECT' || e?.digest?.startsWith?.('NEXT_REDIRECT')) {
+            throw error;
         }
-        throw error;
+        return 'Invalid credentials.';
     }
 }
 
 const createInvoice = FormSchema.omit({id: true, date: true})
-
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require'})
 
 export default async function createInvoices(prevState: State, formData: FormData) {
     const validatedFields = createInvoice.safeParse({

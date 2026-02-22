@@ -11,6 +11,7 @@ import { Button } from './button';
 import { useActionState } from 'react';
 import { authenticate } from '../lib/action';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -75,10 +76,19 @@ export default function LoginForm() {
           {errorMessage && (
             <>
               <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
-              <p className="text-sm text-red-500">{errorMessage}</p>
+              {errorMessage === 'no_account' ? (
+                <p className="text-sm text-red-500">
+                  No account found.{' '}
+                  <Link href="/create-account" className="text-blue-500 underline">
+                    Create an account
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-red-500">{errorMessage}</p>
+              )}
             </>
           )}
-          </div>
+        </div>
       </div>
     </form>
   );

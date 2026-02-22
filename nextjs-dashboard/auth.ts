@@ -1,44 +1,37 @@
 import NextAuth from 'next-auth';
 import { authConfig } from './auth.config';
 import Credentials from 'next-auth/providers/credentials';
-import { email } from 'zod/v4';
 import z from 'zod';
 import type {User} from '@/app/lib/definitions'
-import postgres from 'postgres';
 import bcrypt from "bcrypt"
-
-const sql = postgres(process.env.POSTGRES_URL!, {ssl: 'require'})
+import { sql } from '@/app/lib/data';
 
 async function getUser(email: string): Promise<User | undefined> {
-    try{
-        const user = await sql<User[]>`
-        SELECT * FROM users WHERE email = ${email}
-        `;
-        return user[0];
-    }catch(error){
-        console.log("Failed to fetch user:", error)
-        throw new Error('Failed to fetch user');
-    }
+    const user = await sql<User[]>`SELECT * FROM users WHERE email = ${email}`;
+    return user[0];
 }
 
 export const { auth, signIn, signOut } = NextAuth({
     ...authConfig,
     providers: [Credentials({
         async authorize(credentials){
+            // Next.js useActionState prefixes form fields with '1_' in the wire protocol
+            const rawCreds = {
+                email: (credentials as any)?.email ?? (credentials as any)?.['1_email'],
+                password: (credentials as any)?.password ?? (credentials as any)?.['1_password'],
+            };
+
             const parsedCredentials = z.object({
                 email: z.string().email(), password: z.string().min(6)
-            })
-            .safeParse(credentials);
+            }).safeParse(rawCreds);
 
-            if(parsedCredentials.success){
-                const {email, password} = parsedCredentials.data;
-                const user = await getUser(email); 
-                if(!user) return null;
+            if (parsedCredentials.success) {
+                const { email, password } = parsedCredentials.data;
+                const user = await getUser(email);
+                if (!user) return null;
                 const passwordMatch = await bcrypt.compare(password, user.password);
-                if(passwordMatch) return user;
+                if (passwordMatch) return user;
             }
-
-            console.log('Invalid Credentials')
             return null;
         }
     })]
